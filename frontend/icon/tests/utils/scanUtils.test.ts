@@ -10,6 +10,9 @@ import {
   getScanParameterOptions,
   getScanParameterSearchOptions,
   searchScanParameterOptions,
+  scanStepSize,
+  pointsForStepSize,
+  withStepSizePoints,
 } from "../../src/utils/scanUtils";
 import { ScanParameterInfo } from "../../src/types/ScanParameterInfo";
 import {
@@ -338,5 +341,55 @@ describe("scanUtils: searchScanParameterOptions", () => {
       "duration",
       "stark shift - pi-half - sm1/2",
     ]);
+  });
+});
+
+describe("scanStepSize", () => {
+  it("spreads the points evenly from start to stop", () => {
+    expect(scanStepSize({ start: 0, stop: 10, points: 11 })).toBeCloseTo(1);
+    expect(scanStepSize({ start: 10, stop: 0, points: 5 })).toBeCloseTo(2.5);
+  });
+
+  it("has no step for a single point", () => {
+    expect(scanStepSize({ start: 0, stop: 10, points: 1 })).toBeNull();
+  });
+});
+
+describe("pointsForStepSize", () => {
+  it("fits the points into the range", () => {
+    expect(pointsForStepSize(0, 10, 1)).toBe(11);
+    expect(pointsForStepSize(10, 0, 2.5)).toBe(5);
+  });
+
+  it("is not thrown off by floating point division", () => {
+    // 1 / 0.1 is 9.999999999999998
+    expect(pointsForStepSize(0, 1, 0.1)).toBe(11);
+    expect(pointsForStepSize(0, 0.3, 0.1)).toBe(4);
+  });
+
+  it("keeps the range when the step doesn't divide it", () => {
+    // 34 points 0.303 apart rather than 35 points 0.3 apart past the stop
+    expect(pointsForStepSize(0, 10, 0.3)).toBe(34);
+  });
+
+  it("gives a single point for a step larger than the range", () => {
+    expect(pointsForStepSize(0, 1, 5)).toBe(1);
+  });
+});
+
+describe("withStepSizePoints", () => {
+  const generation = { start: 0, stop: 1, points: 2, pattern: "linear" as const };
+
+  it("derives the points in step mode", () => {
+    expect(
+      withStepSizePoints({ ...generation, pointsMode: "step", step: 0.5 }).points,
+    ).toBe(3);
+  });
+
+  it("returns other generations unchanged", () => {
+    const pointsMode = { ...generation, pointsMode: "points" as const, step: 0.5 };
+    expect(withStepSizePoints(pointsMode)).toBe(pointsMode);
+    const noStep = { ...generation, pointsMode: "step" as const, step: 0 };
+    expect(withStepSizePoints(noStep)).toBe(noStep);
   });
 });

@@ -3,6 +3,7 @@ import { Store } from "../stores/parmeterStore";
 import { DeviceInfo } from "../types/DeviceInfo";
 import { ParameterMetadata } from "../types/ExperimentMetadata";
 import { ScanParameterInfo } from "../types/ScanParameterInfo";
+import { ScanParameterGenerationSpec } from "../types/ScanParameterGenerationSpec";
 
 export interface ScanParameterBounds {
   min: number | null;
@@ -40,6 +41,42 @@ export const refreshSpanCenterParameters = (
       },
     };
   });
+
+/**
+ * Step size between the points of a scan, which spreads them evenly from start to
+ * stop.
+ *
+ * @returns The step size, or null for fewer than two points
+ */
+export const scanStepSize = (
+  generation: Pick<ScanParameterGenerationSpec, "start" | "stop" | "points">,
+): number | null =>
+  generation.points >= 2
+    ? Math.abs(generation.stop - generation.start) / (generation.points - 1)
+    : null;
+
+/**
+ * Number of points for a step size: as many as fit into the range at least `step`
+ * apart, so the step taken can come out a bit larger to keep the range.
+ */
+export const pointsForStepSize = (start: number, stop: number, step: number): number =>
+  // The small tolerance keeps e.g. a range of 1 in steps of 0.1 at 11 points
+  Math.floor(Math.abs(stop - start) / step + 1e-9) + 1;
+
+/**
+ * Derives the number of points from the step size for a generation in "step" mode.
+ * Other generations, and ones without a positive step, are returned unchanged.
+ */
+export const withStepSizePoints = (
+  generation: ScanParameterGenerationSpec,
+): ScanParameterGenerationSpec => {
+  const { step } = generation;
+  if (generation.pointsMode !== "step" || step === undefined || !(step > 0)) {
+    return generation;
+  }
+  const points = pointsForStepSize(generation.start, generation.stop, step);
+  return points === generation.points ? generation : { ...generation, points };
+};
 
 const getScanParameterMetadata = (
   param: ScanParameterInfo,

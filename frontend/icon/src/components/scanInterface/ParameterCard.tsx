@@ -24,11 +24,13 @@ import {
   ScanInputMode,
   ScanParameterInfo,
   ScanPattern,
+  ScanPointsMode,
   scanPatterns,
 } from "../../types/ScanParameterInfo";
 import {
   getScanParameterOptions,
   getScanParameterSearchOptions,
+  scanStepSize,
 } from "../../utils/scanUtils";
 import { ParameterSearch } from "./ParameterSearch";
 
@@ -231,6 +233,36 @@ export const ParameterCard = ({
           ...newGeneration,
           inputMode: newMode,
           otherModeSpec: currentModeSpec,
+          // Points or step size is chosen per parameter, not per input mode
+          pointsMode: param.generation.pointsMode,
+          step: param.generation.step,
+        },
+      },
+    });
+  };
+
+  const pointsMode: ScanPointsMode = param.generation.pointsMode ?? "points";
+  const stepSize = scanStepSize(param.generation);
+  const stepSizeText =
+    stepSize === null ? "Single point" : `Step: ${roundFloatNoise(stepSize)}`;
+
+  const handlePointsModeChange = (
+    _: React.MouseEvent,
+    newMode: ScanPointsMode | null,
+  ) => {
+    if (!newMode || newMode === pointsMode) return;
+    dispatchScanInfoStateUpdate({
+      type: "UPDATE_PARAMETER",
+      index,
+      payload: {
+        generation: {
+          ...param.generation,
+          pointsMode: newMode,
+          // Start from the step size of the current points
+          step:
+            newMode === "step"
+              ? roundFloatNoise(stepSize ?? Math.abs(span))
+              : param.generation.step,
         },
       },
     });
@@ -464,36 +496,92 @@ export const ParameterCard = ({
               </>
             )}
 
-            <TextField
-              required
-              disabled={!param.id}
-              label="Points"
+            <ToggleButtonGroup
+              value={pointsMode}
+              exclusive
               size="small"
-              type="number"
               fullWidth
-              error={param.generation.points < 1}
-              value={param.generation.points}
-              onChange={(e) =>
-                dispatchScanInfoStateUpdate({
-                  type: "UPDATE_PARAMETER",
-                  index,
-                  payload: {
-                    generation: {
-                      ...param.generation,
-                      points: Number(e.target.value),
+              disabled={!param.id}
+              onChange={handlePointsModeChange}
+            >
+              <ToggleButton value="points" sx={{ textTransform: "none" }}>
+                Points
+              </ToggleButton>
+              <ToggleButton value="step" sx={{ textTransform: "none" }}>
+                Step size
+              </ToggleButton>
+            </ToggleButtonGroup>
+
+            {pointsMode === "step" ? (
+              <TextField
+                required
+                disabled={!param.id}
+                label="Step size"
+                size="small"
+                type="number"
+                fullWidth
+                error={!((param.generation.step ?? 0) > 0)}
+                value={param.generation.step ?? ""}
+                helperText={
+                  param.generation.points === 1
+                    ? "1 point"
+                    : `${param.generation.points} points` +
+                      (stepSize !== null &&
+                      roundFloatNoise(stepSize) !==
+                        roundFloatNoise(param.generation.step ?? 0)
+                        ? `, step ${roundFloatNoise(stepSize)} to keep the range`
+                        : "")
+                }
+                onChange={(e) =>
+                  dispatchScanInfoStateUpdate({
+                    type: "UPDATE_PARAMETER",
+                    index,
+                    payload: {
+                      generation: {
+                        ...param.generation,
+                        step: Math.abs(Number(e.target.value)),
+                      },
+                    },
+                  })
+                }
+                variant="outlined"
+                slotProps={{
+                  input: { inputProps: { min: 0 } },
+                }}
+              />
+            ) : (
+              <TextField
+                required
+                disabled={!param.id}
+                label="Points"
+                size="small"
+                type="number"
+                fullWidth
+                error={param.generation.points < 1}
+                value={param.generation.points}
+                helperText={stepSizeText}
+                onChange={(e) =>
+                  dispatchScanInfoStateUpdate({
+                    type: "UPDATE_PARAMETER",
+                    index,
+                    payload: {
+                      generation: {
+                        ...param.generation,
+                        points: Number(e.target.value),
+                      },
+                    },
+                  })
+                }
+                variant="outlined"
+                slotProps={{
+                  input: {
+                    inputProps: {
+                      min: 1,
                     },
                   },
-                })
-              }
-              variant="outlined"
-              slotProps={{
-                input: {
-                  inputProps: {
-                    min: 1,
-                  },
-                },
-              }}
-            />
+                }}
+              />
+            )}
           </div>
           <FormControl fullWidth size="small">
             <InputLabel>Scan pattern</InputLabel>

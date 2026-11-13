@@ -294,6 +294,24 @@ describe("ScanInfoSelectionHistory.handleParamUpdate", () => {
     });
   });
 
+  it("remembers points or step size per parameter, across input modes", () => {
+    const history = record(
+      emptyScanInfoHistory,
+      param("E", "grp", "A", {
+        ...gen(0, 1, 11),
+        pointsMode: "step",
+        step: 0.1,
+        inputMode: "spanCenter",
+        otherModeSpec: gen(5, 6, 3),
+      }),
+    );
+    const { updatedParam } = mkMgr(history).handleParamUpdate(
+      param("E", "grp", "B", gen(0, 1)),
+      { id: "A" },
+    );
+    expect(updatedParam.generation).toMatchObject({ pointsMode: "step", step: 0.1 });
+  });
+
   it("does not mutate the input parameter", () => {
     const current = param("E", "grp", "p1", gen(0, 1));
     const snapshot = JSON.parse(JSON.stringify(current));

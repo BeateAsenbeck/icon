@@ -81,6 +81,14 @@ const ScanInterface = ({ experimentId }: ScanInterfaceProps) => {
         valid = false;
         break;
       }
+      if (
+        param.generation.pointsMode === "step" &&
+        !((param.generation.step ?? 0) > 0)
+      ) {
+        newErrors.parameters = "Step size must be positive";
+        valid = false;
+        break;
+      }
       if (param.generation.points < 1) {
         newErrors.parameters = "Points must be at least 1";
         valid = false;

@@ -217,4 +217,72 @@ describe("useScanInfoState reducer", () => {
     const saved = JSON.parse(store.getItem(STORAGE_KEY) as string);
     expect(saved.shots).toBe(42);
   });
+
+  describe("step size mode", () => {
+    const stepState = (): ScanInfoState => {
+      const state = baseState();
+      state.parameters = [
+        {
+          ...defaultParameter,
+          id: "p",
+          namespace: TEST_NAMESPACE,
+          deviceNameOrDisplayGroup: "grp",
+          generation: { start: 0, stop: 1, points: 2, pattern: "linear" },
+        },
+      ];
+      return state;
+    };
+
+    it("derives the points from the step size", () => {
+      const next = run(stepState(), {
+        type: "UPDATE_PARAMETER",
+        index: 0,
+        payload: {
+          generation: {
+            start: 0,
+            stop: 1,
+            points: 2,
+            pattern: "linear",
+            pointsMode: "step",
+            step: 0.1,
+          },
+        },
+      });
+      expect(next.parameters[0].generation.points).toBe(11);
+    });
+
+    it("updates the points when the range changes", () => {
+      const withStep = run(stepState(), {
+        type: "UPDATE_PARAMETER",
+        index: 0,
+        payload: {
+          generation: {
+            start: 0,
+            stop: 1,
+            points: 2,
+            pattern: "linear",
+            pointsMode: "step",
+            step: 0.25,
+          },
+        },
+      });
+      const next = run(withStep, {
+        type: "UPDATE_PARAMETER",
+        index: 0,
+        payload: { generation: { ...withStep.parameters[0].generation, stop: 2 } },
+      });
+      expect(next.parameters[0].generation.points).toBe(9);
+    });
+
+    it("leaves the points alone in points mode", () => {
+      const next = run(stepState(), {
+        type: "UPDATE_PARAMETER",
+        index: 0,
+        payload: {
+          generation: { start: 0, stop: 1, points: 7, pattern: "linear", step: 0.1 },
+        },
+      });
+      expect(next.parameters[0].generation.points).toBe(7);
+    });
+  });
 });

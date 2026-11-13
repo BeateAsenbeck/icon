@@ -1,4 +1,4 @@
-import { ScanInputMode, ScanPattern } from "./ScanParameterInfo";
+import { ScanInputMode, ScanPattern, ScanPointsMode } from "./ScanParameterInfo";
 
 /** The start/stop/points/pattern quadruple for a single input mode. */
 export interface ScanParameterModeSpec {
@@ -18,4 +18,11 @@ export interface ScanParameterGenerationSpec extends ScanParameterModeSpec {
    * mode's own settings instead of recomputing one from the other.
    */
   otherModeSpec?: ScanParameterModeSpec;
+  /** Whether points or step is given. "points" is the default. */
+  pointsMode?: ScanPointsMode;
+  /**
+   * Step size between points in "step" mode. `points` is then derived from it: as
+   * many points as fit into the range at least this far apart, with the range kept.
+   */
+  step?: number;
 }

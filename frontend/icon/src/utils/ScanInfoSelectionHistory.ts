@@ -32,6 +32,8 @@ const paramFromLeaf = (
     pattern: leaf.pattern,
     inputMode: leaf.inputMode,
     otherModeSpec: leaf.otherModeSpec,
+    pointsMode: leaf.pointsMode,
+    step: leaf.step,
   },
 });
 
@@ -64,7 +66,12 @@ const alignLeafToMode = (
     return { ...leaf, inputMode: targetMode, otherModeSpec: ownModeSpec };
   }
 
-  return { ...leaf.otherModeSpec, inputMode: targetMode, otherModeSpec: ownModeSpec };
+  return {
+    ...leaf,
+    ...leaf.otherModeSpec,
+    inputMode: targetMode,
+    otherModeSpec: ownModeSpec,
+  };
 };
 
 /**

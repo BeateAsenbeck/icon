@@ -6,6 +6,7 @@ import {
   ScanInfoSelectionHistory,
   emptyScanInfoHistory,
 } from "../utils/ScanInfoSelectionHistory";
+import { withStepSizePoints } from "../utils/scanUtils";
 
 export interface ScanInfoState {
   priority: number;
@@ -97,18 +98,26 @@ export const reducer =
           ),
         };
       } else {
+        // In step mode the number of points follows from the step size and range
+        const payload = action.payload.generation
+          ? {
+              ...action.payload,
+              generation: withStepSizePoints(action.payload.generation),
+            }
+          : action.payload;
         const { updatedParam, updatedScanInfoHistory } = new ScanInfoSelectionHistory(
           () => defaultParameterGenerationSpec,
           state.history,
-        ).handleParamUpdate(
-          state.parameters[action.index],
-          action.payload,
-          action.recenterOn,
-        );
+        ).handleParamUpdate(state.parameters[action.index], payload, action.recenterOn);
         newState = {
           ...state,
           parameters: state.parameters.map((p, i) =>
-            i === action.index ? updatedParam : p,
+            i === action.index
+              ? {
+                  ...updatedParam,
+                  generation: withStepSizePoints(updatedParam.generation),
+                }
+              : p,
           ),
           history: updatedScanInfoHistory,
         };
